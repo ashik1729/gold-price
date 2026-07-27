@@ -5,10 +5,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   COMPANY_SUBTITLE,
   COMPANY_TITLE,
+  DAY_BASELINE_KEY,
   DISPLAY_WEIGHT_OPTIONS,
   KARAT_OPTIONS,
   KARAT_ROTATE_INTERVAL_MS,
-  PREVIOUS_PRICES_KEY,
   REFRESH_INTERVAL_MS,
   STORAGE_KEY,
   TIMEZONE,
@@ -30,10 +30,10 @@ import {
   getWeightSellingPrice,
 } from "@/lib/goldCalculations";
 import type {
+  DayBaselinePrices,
   GoldKarat,
   MarketStatus,
   MetalsApiResponse,
-  PreviousMetalPrices,
   PriceChange,
 } from "@/lib/types";
 
@@ -63,12 +63,22 @@ function writeCache(data: MetalsApiResponse) {
   }
 }
 
-function readPreviousPrices(): PreviousMetalPrices | null {
+function qatarDateKey(date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function readDayBaseline(): DayBaselinePrices | null {
   try {
-    const raw = localStorage.getItem(PREVIOUS_PRICES_KEY);
+    const raw = localStorage.getItem(DAY_BASELINE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as PreviousMetalPrices;
+    const parsed = JSON.parse(raw) as DayBaselinePrices;
     if (
+      typeof parsed?.date === "string" &&
       typeof parsed?.gold === "number" &&
       typeof parsed?.silver === "number"
     ) {
@@ -80,12 +90,56 @@ function readPreviousPrices(): PreviousMetalPrices | null {
   }
 }
 
-function writePreviousPrices(prices: PreviousMetalPrices) {
+function writeDayBaseline(baseline: DayBaselinePrices) {
   try {
-    localStorage.setItem(PREVIOUS_PRICES_KEY, JSON.stringify(prices));
+    localStorage.setItem(DAY_BASELINE_KEY, JSON.stringify(baseline));
   } catch {
     // Ignore storage failures.
   }
+}
+
+/**
+ * Read today's baseline if it exists. Does not create one.
+ */
+function getTodayBaseline(): DayBaselinePrices | null {
+  const existing = readDayBaseline();
+  if (existing && existing.date === qatarDateKey()) {
+    return existing;
+  }
+  return null;
+}
+
+/**
+ * First live prices of the Qatar day become the baseline and stay fixed.
+ */
+function resolveDayBaseline(
+  gold: number,
+  silver: number
+): DayBaselinePrices {
+  const existing = getTodayBaseline();
+  if (existing) return existing;
+
+  const baseline: DayBaselinePrices = {
+    date: qatarDateKey(),
+    gold,
+    silver,
+  };
+  writeDayBaseline(baseline);
+  return baseline;
+}
+
+function changesAgainstBaseline(
+  gold: number,
+  silver: number,
+  baseline: DayBaselinePrices | null
+): { gold: PriceChange | null; silver: PriceChange | null } {
+  if (!baseline) {
+    return { gold: null, silver: null };
+  }
+  return {
+    gold: getPriceChange(gold, baseline.gold),
+    silver: getPriceChange(silver, baseline.silver),
+  };
 }
 
 function ChangePill({ change }: { change: PriceChange | null }) {
@@ -201,13 +255,17 @@ export default function HomePage() {
       setData(payload);
       writeCache(payload);
 
-      const previous = readPreviousPrices();
-      setGoldChange(getPriceChange(payload.gold.price, previous?.gold));
-      setSilverChange(getPriceChange(payload.silver.price, previous?.silver));
-      writePreviousPrices({
-        gold: payload.gold.price,
-        silver: payload.silver.price,
-      });
+      const baseline = resolveDayBaseline(
+        payload.gold.price,
+        payload.silver.price
+      );
+      const changes = changesAgainstBaseline(
+        payload.gold.price,
+        payload.silver.price,
+        baseline
+      );
+      setGoldChange(changes.gold);
+      setSilverChange(changes.silver);
 
       setStatus("live");
     } catch {
@@ -220,13 +278,18 @@ export default function HomePage() {
   // Load cache + start live refresh (once on mount).
   useEffect(() => {
     const cached = readCache();
-    const previous = readPreviousPrices();
 
     if (cached) {
       setData(cached);
       setStatus("updating");
-      setGoldChange(getPriceChange(cached.gold.price, previous?.gold));
-      setSilverChange(getPriceChange(cached.silver.price, previous?.silver));
+      // Only compare against an existing today baseline — never create one from cache.
+      const changes = changesAgainstBaseline(
+        cached.gold.price,
+        cached.silver.price,
+        getTodayBaseline()
+      );
+      setGoldChange(changes.gold);
+      setSilverChange(changes.silver);
     }
 
     const bootId = window.setTimeout(() => {

@@ -13,7 +13,9 @@ export interface MetalsApiResponse {
   updatedAt: string;
 }
 
-export interface PreviousMetalPrices {
+export interface DayBaselinePrices {
+  /** Qatar calendar date, e.g. 2026-07-28 */
+  date: string;
   gold: number;
   silver: number;
 }

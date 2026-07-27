@@ -20,7 +20,8 @@ export const GOLD_API_URL = "https://api.gold-api.com/price/XAU";
 export const SILVER_API_URL = "https://api.gold-api.com/price/XAG";
 
 export const STORAGE_KEY = "victoria-metals-cache";
-export const PREVIOUS_PRICES_KEY = "victoria-metals-previous";
+/** First gold/silver prices seen today (Qatar date) — used for up/down %. */
+export const DAY_BASELINE_KEY = "victoria-metals-day-baseline";
 
 export const GOLD_PURITY: Record<GoldKarat, number> = {
   "24K": 1,
