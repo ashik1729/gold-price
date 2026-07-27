@@ -64,12 +64,15 @@
   position: relative;
   z-index: 1;
   width: 100vw;
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding: 3.5vh 5vw;
+  height: 100vh;
+  height: 100dvh;
+  /* Extra bottom padding for TV overscan — keeps USD row visible */
+  padding: 3vh 5vw 6vh;
   display: flex;
   flex-direction: column;
-  gap: 2.5vh;
+  gap: 1.6vh;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .topbar {
@@ -96,28 +99,41 @@
 
 .brand {
   text-align: center;
-  margin-top: -0.5vh;
+  margin-top: 0;
+  flex-shrink: 0;
 }
 
 .brand-mark {
-  font-size: clamp(34px, 5vw, 72px);
+  font-size: clamp(28px, 3.8vw, 56px);
   color: var(--gold);
   line-height: 1;
 }
 
 .brand h1 {
-  margin: 0.4rem 0 0;
-  font-size: clamp(22px, 2.8vw, 44px);
+  margin: 0.25rem 0 0;
+  font-size: clamp(22px, 2.6vw, 40px);
   font-weight: 500;
   letter-spacing: 0.15em;
   color: var(--text);
 }
 
 .brand-sub {
-  margin-top: 0.35rem;
+  margin-top: 0.25rem;
   color: var(--cyan);
   font-size: clamp(10px, 0.85vw, 14px);
   letter-spacing: 0.35em;
+}
+
+.status-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.6vh;
+  color: var(--muted);
+  font-size: clamp(10px, 0.8vw, 14px);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
 }
 
 .spot-panel {
@@ -135,8 +151,8 @@
 }
 
 .spot {
-  min-height: clamp(120px, 16vh, 160px);
-  padding: 2vh 2vw;
+  min-height: clamp(100px, 13vh, 140px);
+  padding: 1.5vh 2vw;
   border-radius: 20px;
   background: linear-gradient(
     135deg,
@@ -264,9 +280,9 @@
 }
 
 .card {
-  min-height: clamp(140px, 18vh, 180px);
+  min-height: clamp(120px, 15vh, 160px);
   border-radius: 16px;
-  padding: 1.2rem 1.3rem;
+  padding: 1rem 1.15rem;
   border: 1px solid var(--line);
   background: var(--card);
   box-shadow: 0 12px 38px rgba(0, 0, 0, 0.18);
@@ -309,17 +325,6 @@
 
 .value.usd {
   color: var(--gold);
-}
-
-.status-bar {
-  margin-top: auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  color: var(--muted);
-  font-size: clamp(10px, 0.8vw, 14px);
-  letter-spacing: 0.08em;
 }
 
 .status-dot {
@@ -407,11 +412,13 @@
   }
 
   .screen {
-    padding: 3vh 4vw;
+    height: auto;
+    min-height: 100dvh;
+    overflow: auto;
+    padding: 3vh 4vw 5vh;
   }
 
   .status-bar {
-    flex-direction: column;
-    align-items: flex-start;
+    justify-content: center;
   }
 }

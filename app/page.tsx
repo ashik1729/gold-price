@@ -351,6 +351,29 @@ export default function HomePage() {
         </div>
         <h1>{COMPANY_TITLE}</h1>
         <div className="brand-sub">{COMPANY_SUBTITLE}</div>
+        <div className="status-bar" role="status" aria-live="polite">
+          <div>
+            <span
+              className={`status-dot${
+                status === "error"
+                  ? " error"
+                  : status === "loading" || status === "updating"
+                    ? " loading"
+                    : ""
+              }`}
+            />
+            <span>{statusText}</span>
+            {status === "error" && (
+              <button
+                type="button"
+                className="retry-btn"
+                onClick={() => void fetchPrices("refresh")}
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        </div>
       </section>
 
       {showSkeleton ? (
@@ -471,30 +494,6 @@ export default function HomePage() {
           </article>
         </section>
       )}
-
-      <footer className="status-bar">
-        <div>
-          <span
-            className={`status-dot${
-              status === "error"
-                ? " error"
-                : status === "loading" || status === "updating"
-                  ? " loading"
-                  : ""
-            }`}
-          />
-          <span>{statusText}</span>
-          {status === "error" && (
-            <button
-              type="button"
-              className="retry-btn"
-              onClick={() => void fetchPrices("refresh")}
-            >
-              Retry
-            </button>
-          )}
-        </div>
-      </footer>
     </main>
   );
 }
