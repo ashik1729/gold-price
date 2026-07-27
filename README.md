@@ -27,17 +27,15 @@ npm run deploy    # OpenNext build + deploy as victoria-gold-price
 
 ### Cloudflare Workers Builds (dashboard)
 
-Use these settings so OpenNext compiles before Wrangler deploys:
+OpenNext runs your package.json `build` script (`next build`) internally.
+So Cloudflare must call OpenNext itself — not `npm run build`.
 
 | Setting | Value |
 |---|---|
-| **Build command** | `npm run build` |
+| **Build command** | `npx opennextjs-cloudflare build` |
 | **Deploy command** | `npx wrangler deploy` |
 
-`npm run build` runs `opennextjs-cloudflare build` (creates `.open-next/`).  
-Do **not** use plain `next build` as the Cloudflare build command — Wrangler will fail with:
-
-`Could not find compiled Open Next config`
+Do **not** set Build command to `npm run build` when `build` is `opennextjs-cloudflare build` — that creates an infinite loop.
 
 ## Features
 
