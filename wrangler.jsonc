@@ -9,7 +9,9 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "NEXT_PUBLIC_PRICE_MARKUP_USD": "2"
+    "NEXT_PUBLIC_PRICE_MARKUP_USD": "2",
+    "NEXT_PUBLIC_BID_OFFSET_USD": "1",
+    "NEXT_PUBLIC_ASK_OFFSET_USD": "2"
   },
   "observability": {
     "enabled": true

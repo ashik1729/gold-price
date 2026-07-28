@@ -10,9 +10,13 @@ export const PRICE_MARKUP_USD = Number.parseFloat(
 );
 
 /** Bid = live spot − this amount (USD/oz). Same for gold and silver. */
-export const BID_OFFSET_USD = 1;
+export const BID_OFFSET_USD = Number.parseFloat(
+  process.env.NEXT_PUBLIC_BID_OFFSET_USD ?? "1"
+);
 /** Ask = live spot + this amount (USD/oz). Same for gold and silver. */
-export const ASK_OFFSET_USD = 2;
+export const ASK_OFFSET_USD = Number.parseFloat(
+  process.env.NEXT_PUBLIC_ASK_OFFSET_USD ?? "2"
+);
 
 export const USD_TO_QAR = 3.64;
 export const REFRESH_INTERVAL_MS = 60000;
