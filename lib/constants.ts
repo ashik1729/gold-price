@@ -4,15 +4,18 @@ export const COMPANY_NAME = "Victoria Gold & Diamonds";
 export const COMPANY_TITLE = "VICTORIA";
 export const COMPANY_SUBTITLE = "GOLD & DIAMONDS";
 
-/** USD markup added to every Victoria selling price (including gold oz). From env. */
+/** USD markup for legacy weight/karat calculations. From env. */
 export const PRICE_MARKUP_USD = Number.parseFloat(
   process.env.NEXT_PUBLIC_PRICE_MARKUP_USD ?? "2"
 );
 
+/** Bid = live spot − this amount (USD/oz). Same for gold and silver. */
+export const BID_OFFSET_USD = 1;
+/** Ask = live spot + this amount (USD/oz). Same for gold and silver. */
+export const ASK_OFFSET_USD = 2;
+
 export const USD_TO_QAR = 3.64;
 export const REFRESH_INTERVAL_MS = 60000;
-/** How long each karat tab stays selected on the TV display. */
-export const KARAT_ROTATE_INTERVAL_MS = 8000;
 export const TROY_OUNCE_IN_GRAMS = 31.1034768;
 export const TIMEZONE = "Asia/Qatar";
 

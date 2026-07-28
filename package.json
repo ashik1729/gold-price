@@ -2,6 +2,13 @@
   "name": "gold-price",
   "version": "0.1.0",
   "private": true,
+  "browserslist": [
+    "chrome >= 49",
+    "safari >= 10",
+    "ios_saf >= 10",
+    "android >= 5",
+    "not dead"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

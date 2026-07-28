@@ -1,10 +1,22 @@
 import {
+  ASK_OFFSET_USD,
+  BID_OFFSET_USD,
   GOLD_PURITY,
   PRICE_MARKUP_USD,
   TROY_OUNCE_IN_GRAMS,
   USD_TO_QAR,
 } from "./constants";
 import type { CalculatedPrice, GoldKarat, PriceChange } from "./types";
+
+/** Bid price (USD/oz) = live spot − $1. */
+export function getBidPrice(liveSpotPerOunce: number): number {
+  return liveSpotPerOunce - BID_OFFSET_USD;
+}
+
+/** Ask price (USD/oz) = live spot + $2. */
+export function getAskPrice(liveSpotPerOunce: number): number {
+  return liveSpotPerOunce + ASK_OFFSET_USD;
+}
 
 export function getGoldPricePerGram24K(liveGoldPricePerOunce: number): number {
   return liveGoldPricePerOunce / TROY_OUNCE_IN_GRAMS;
