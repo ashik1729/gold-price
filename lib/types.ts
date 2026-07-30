@@ -4,7 +4,12 @@ export type MarketStatus = "live" | "updating" | "error" | "loading";
 
 export interface MetalPrice {
   symbol: string;
+  /** Mid / spot from upstream. */
   price: number;
+  /** Upstream bid (before Victoria offsets). */
+  bid: number;
+  /** Upstream ask (before Victoria offsets). */
+  ask: number;
 }
 
 export interface MetalsApiResponse {
@@ -32,6 +37,20 @@ export interface ExternalMetalApiResponse {
   name?: string;
   updatedAt?: string;
   currency?: string;
+}
+
+/** Response shape from app.goldapi.net `/api/price/{metal}/{currency}`. */
+export interface ExternalGoldApiNetResponse {
+  symbol?: string;
+  metal?: string;
+  currency?: string;
+  bid: number;
+  ask: number;
+  price: number;
+  high?: number;
+  low?: number;
+  exchange?: string;
+  timestamp?: number;
 }
 
 export interface WeightOption {

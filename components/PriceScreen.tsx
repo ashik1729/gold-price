@@ -51,7 +51,11 @@ function readCache(): MetalsApiResponse | null {
     const parsed = JSON.parse(raw) as MetalsApiResponse;
     if (
       typeof parsed?.gold?.price === "number" &&
+      typeof parsed?.gold?.bid === "number" &&
+      typeof parsed?.gold?.ask === "number" &&
       typeof parsed?.silver?.price === "number" &&
+      typeof parsed?.silver?.bid === "number" &&
+      typeof parsed?.silver?.ask === "number" &&
       typeof parsed?.updatedAt === "string"
     ) {
       return parsed;
@@ -244,11 +248,14 @@ function QuoteCard({
 interface PriceScreenProps {
   initialData: MetalsApiResponse | null;
   initialError?: string | null;
+  /** From server `GOLDAPI_ENABLED` — false stops client polling. */
+  apiEnabled?: boolean;
 }
 
 export default function PriceScreen({
   initialData,
   initialError = null,
+  apiEnabled = true,
 }: PriceScreenProps) {
   const [data, setData] = useState<MetalsApiResponse | null>(initialData);
   const [status, setStatus] = useState<MarketStatus>(
@@ -357,10 +364,33 @@ export default function PriceScreen({
       const payload = (await response.json()) as MetalsApiResponse;
       if (
         typeof payload.gold?.price !== "number" ||
-        typeof payload.silver?.price !== "number"
+        typeof payload.gold?.bid !== "number" ||
+        typeof payload.gold?.ask !== "number" ||
+        typeof payload.silver?.price !== "number" ||
+        typeof payload.silver?.bid !== "number" ||
+        typeof payload.silver?.ask !== "number"
       ) {
         throw new Error("Invalid metal price response");
       }
+
+      // Browser console: compare consecutive polls to judge goldapi.net freshness.
+      console.info("[metals poll]", {
+        at: payload.updatedAt,
+        gold: {
+          price: payload.gold.price,
+          bid: payload.gold.bid,
+          ask: payload.gold.ask,
+          displayBid: getBidPrice(payload.gold.bid),
+          displayAsk: getAskPrice(payload.gold.ask),
+        },
+        silver: {
+          price: payload.silver.price,
+          bid: payload.silver.bid,
+          ask: payload.silver.ask,
+          displayBid: getBidPrice(payload.silver.bid),
+          displayAsk: getAskPrice(payload.silver.ask),
+        },
+      });
 
       const prevGold = prevGoldRef.current;
       const prevSilver = prevSilverRef.current;
@@ -384,7 +414,11 @@ export default function PriceScreen({
           if (
             prev &&
             prev.gold.price === payload.gold.price &&
-            prev.silver.price === payload.silver.price
+            prev.gold.bid === payload.gold.bid &&
+            prev.gold.ask === payload.gold.ask &&
+            prev.silver.price === payload.silver.price &&
+            prev.silver.bid === payload.silver.bid &&
+            prev.silver.ask === payload.silver.ask
           ) {
             return prev;
           }
@@ -421,6 +455,25 @@ export default function PriceScreen({
   }, [triggerFlash]);
 
   useEffect(() => {
+    if (!apiEnabled) {
+      // Kill switch: keep SSR/cache on screen, do not call /api/metals.
+      const cached = readCache();
+      if (cached) {
+        startTransition(() => {
+          setData(cached);
+          prevGoldRef.current = cached.gold.price;
+          prevSilverRef.current = cached.silver.price;
+          setStatus("live");
+        });
+      }
+      return () => {
+        if (goldFlashTimerRef.current) window.clearTimeout(goldFlashTimerRef.current);
+        if (silverFlashTimerRef.current) {
+          window.clearTimeout(silverFlashTimerRef.current);
+        }
+      };
+    }
+
     if (!initialData) {
       const cached = readCache();
       if (cached) {
@@ -453,7 +506,7 @@ export default function PriceScreen({
         window.clearTimeout(silverFlashTimerRef.current);
       }
     };
-  }, [fetchPrices, initialData]);
+  }, [fetchPrices, initialData, apiEnabled]);
 
   const lastUpdatedLabel = data
     ? formatUpdatedAt(data.updatedAt, TIMEZONE)
@@ -551,7 +604,7 @@ export default function PriceScreen({
             title="GOLD"
             side="BID"
             metal="gold"
-            price={getBidPrice(data.gold.price)}
+            price={getBidPrice(data.gold.bid)}
             change={goldChange}
             flash={goldFlash}
           />
@@ -559,7 +612,7 @@ export default function PriceScreen({
             title="GOLD"
             side="ASK"
             metal="gold"
-            price={getAskPrice(data.gold.price)}
+            price={getAskPrice(data.gold.ask)}
             change={goldChange}
             flash={goldFlash}
           />
@@ -567,7 +620,7 @@ export default function PriceScreen({
             title="SILVER"
             side="BID"
             metal="silver"
-            price={getBidPrice(data.silver.price)}
+            price={getBidPrice(data.silver.bid)}
             change={silverChange}
             flash={silverFlash}
           />
@@ -575,7 +628,7 @@ export default function PriceScreen({
             title="SILVER"
             side="ASK"
             metal="silver"
-            price={getAskPrice(data.silver.price)}
+            price={getAskPrice(data.silver.ask)}
             change={silverChange}
             flash={silverFlash}
           />

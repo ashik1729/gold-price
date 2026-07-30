@@ -9,19 +9,28 @@ export const PRICE_MARKUP_USD = Number.parseFloat(
   process.env.NEXT_PUBLIC_PRICE_MARKUP_USD ?? "2"
 );
 
-/** Bid = live spot − this amount (USD/oz). Same for gold and silver. */
+/** Display bid = API bid − this amount (USD/oz). Same for gold and silver. */
 export const BID_OFFSET_USD = Number.parseFloat(
   process.env.NEXT_PUBLIC_BID_OFFSET_USD ?? "1"
 );
-/** Ask = live spot + this amount (USD/oz). Same for gold and silver. */
+/** Display ask = API ask + this amount (USD/oz). Same for gold and silver. */
 export const ASK_OFFSET_USD = Number.parseFloat(
   process.env.NEXT_PUBLIC_ASK_OFFSET_USD ?? "2"
 );
 
 export const USD_TO_QAR = 3.64;
-/** Realtime client poll interval (ms). Goldspm-style default: 1000. */
+
+/**
+ * Kill switch for goldapi.net. Set `GOLDAPI_ENABLED=false` in `.env.local`
+ * to stop upstream calls (saves free-plan quota). Restart or hard-refresh after change.
+ * Anything other than "false" is treated as enabled.
+ */
+export const GOLDAPI_ENABLED =
+  (process.env.GOLDAPI_ENABLED ?? "true").toLowerCase() !== "false";
+
+/** Client poll interval (ms). Default 5000 for goldapi.net free/pro testing. */
 export const REFRESH_INTERVAL_MS = Number.parseInt(
-  process.env.NEXT_PUBLIC_REFRESH_INTERVAL_MS ?? "1000",
+  process.env.NEXT_PUBLIC_REFRESH_INTERVAL_MS ?? "5000",
   10
 );
 export const TROY_OUNCE_IN_GRAMS = 31.1034768;
@@ -39,8 +48,8 @@ export const BACKGROUND_IMAGES = [
 /** How long each background stays visible before fading to the next. */
 export const BACKGROUND_ROTATE_MS = 3000;
 
-export const GOLD_API_URL = "https://api.gold-api.com/price/XAU";
-export const SILVER_API_URL = "https://api.gold-api.com/price/XAG";
+/** Docs path `/price/...` is stale; live endpoint is `/api/price/{metal}/{currency}`. */
+export const GOLDAPI_NET_BASE_URL = "https://app.goldapi.net/api/price";
 
 export const STORAGE_KEY = "victoria-metals-cache";
 /** First gold/silver prices seen today (Qatar date) — used for up/down %. */

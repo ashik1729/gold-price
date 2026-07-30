@@ -8,14 +8,14 @@ import {
 } from "./constants";
 import type { CalculatedPrice, GoldKarat, PriceChange } from "./types";
 
-/** Bid price (USD/oz) = live spot − $1. */
-export function getBidPrice(liveSpotPerOunce: number): number {
-  return liveSpotPerOunce - BID_OFFSET_USD;
+/** Display bid (USD/oz) = upstream bid − offset (default $1). */
+export function getBidPrice(apiBidPerOunce: number): number {
+  return apiBidPerOunce - BID_OFFSET_USD;
 }
 
-/** Ask price (USD/oz) = live spot + $2. */
-export function getAskPrice(liveSpotPerOunce: number): number {
-  return liveSpotPerOunce + ASK_OFFSET_USD;
+/** Display ask (USD/oz) = upstream ask + offset (default $2). */
+export function getAskPrice(apiAskPerOunce: number): number {
+  return apiAskPerOunce + ASK_OFFSET_USD;
 }
 
 export function getGoldPricePerGram24K(liveGoldPricePerOunce: number): number {
