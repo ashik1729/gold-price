@@ -1,8 +1,17 @@
 "use client";
 
 import { Maximize, Minimize } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  BACKGROUND_IMAGES,
+  BACKGROUND_ROTATE_MS,
   COMPANY_SUBTITLE,
   COMPANY_TITLE,
   DAY_BASELINE_KEY,
@@ -11,7 +20,6 @@ import {
   TIMEZONE,
 } from "@/lib/constants";
 import {
-  formatChangeAbsolute,
   formatChangePercent,
   formatQatarDateShort,
   formatQatarTime,
@@ -32,6 +40,8 @@ import type {
 } from "@/lib/types";
 
 const FETCH_TIMEOUT_MS = 15000;
+/** How long green/red card backgrounds stay before returning to gray. */
+const FLASH_HOLD_MS = 1000;
 
 function readCache(): MetalsApiResponse | null {
   try {
@@ -118,20 +128,6 @@ function resolveDayBaseline(
   return baseline;
 }
 
-function changesAgainstBaseline(
-  gold: number,
-  silver: number,
-  baseline: DayBaselinePrices | null
-): { gold: PriceChange | null; silver: PriceChange | null } {
-  if (!baseline) {
-    return { gold: null, silver: null };
-  }
-  return {
-    gold: getPriceChange(gold, baseline.gold),
-    silver: getPriceChange(silver, baseline.silver),
-  };
-}
-
 function ChangePill({ change }: { change: PriceChange | null }) {
   if (!change) {
     return <div className="change-pill flat">—</div>;
@@ -145,7 +141,6 @@ function ChangePill({ change }: { change: PriceChange | null }) {
       <span className="change-arrow" aria-hidden="true">
         {arrow}
       </span>
-      <span>{formatChangeAbsolute(change.absolute)}</span>
       <span className="pct">{formatChangePercent(change.percent)}</span>
     </div>
   );
@@ -189,25 +184,55 @@ function FullscreenButton() {
   );
 }
 
+function BackgroundStage() {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (BACKGROUND_IMAGES.length < 2) return;
+
+    const id = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % BACKGROUND_IMAGES.length);
+    }, BACKGROUND_ROTATE_MS);
+
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <div className="screen-bg" aria-hidden="true">
+      {BACKGROUND_IMAGES.map((src, index) => (
+        <div
+          key={src}
+          className={`screen-bg__image${index === activeIndex ? " is-active" : ""}`}
+          style={{ backgroundImage: `url("${src}")` }}
+        />
+      ))}
+      <div className="screen-bg__veil" />
+    </div>
+  );
+}
+
 function QuoteCard({
   title,
   side,
   price,
   change,
   metal,
+  flash,
 }: {
   title: string;
   side: "BID" | "ASK";
   price: number;
   change: PriceChange | null;
   metal: "gold" | "silver";
+  flash: "up" | "down" | "flat";
 }) {
   return (
-    <article className={`spot ${metal} ${side.toLowerCase()}`}>
-      <div className="spot-title">
-        {title} {side}
-      </div>
-      <div className="spot-side">{side} · USD / OZ</div>
+    <article
+      className={`spot ${metal} ${side.toLowerCase()} flash-${flash}`}
+    >
+      <div className="spot-eyebrow">{title}</div>
+      <div className="spot-title">{side}</div>
+      <div className="spot-side">USD / OZ</div>
       <div className="spot-price">{formatSpotUSD(price)}</div>
       <ChangePill change={change} />
     </article>
@@ -238,8 +263,18 @@ export default function PriceScreen({
       ? { absolute: 0, percent: 0, direction: "flat" }
       : null
   );
+  const [goldFlash, setGoldFlash] = useState<"up" | "down" | "flat">("flat");
+  const [silverFlash, setSilverFlash] = useState<"up" | "down" | "flat">(
+    "flat"
+  );
   const fetchingRef = useRef(false);
   const seededRef = useRef(false);
+  const prevGoldRef = useRef<number | null>(initialData?.gold.price ?? null);
+  const prevSilverRef = useRef<number | null>(
+    initialData?.silver.price ?? null
+  );
+  const goldFlashTimerRef = useRef<number | null>(null);
+  const silverFlashTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -255,28 +290,68 @@ export default function PriceScreen({
       if (seededRef.current) return;
       seededRef.current = true;
       writeCache(initialData);
+      prevGoldRef.current = initialData.gold.price;
+      prevSilverRef.current = initialData.silver.price;
       const baseline = resolveDayBaseline(
         initialData.gold.price,
         initialData.silver.price
       );
-      const changes = changesAgainstBaseline(
-        initialData.gold.price,
-        initialData.silver.price,
-        baseline
+      setGoldChange(
+        getPriceChange(initialData.gold.price, baseline.gold) ?? {
+          absolute: 0,
+          percent: 0,
+          direction: "flat",
+        }
       );
-      setGoldChange(changes.gold);
-      setSilverChange(changes.silver);
+      setSilverChange(
+        getPriceChange(initialData.silver.price, baseline.silver) ?? {
+          absolute: 0,
+          percent: 0,
+          direction: "flat",
+        }
+      );
+      setGoldFlash("flat");
+      setSilverFlash("flat");
     }, 0);
 
     return () => window.clearTimeout(id);
   }, [initialData]);
 
+  const triggerFlash = useCallback(
+    (
+      metal: "gold" | "silver",
+      direction: "up" | "down" | "flat"
+    ) => {
+      if (direction === "flat") return;
+
+      if (metal === "gold") {
+        setGoldFlash(direction);
+        if (goldFlashTimerRef.current) {
+          window.clearTimeout(goldFlashTimerRef.current);
+        }
+        goldFlashTimerRef.current = window.setTimeout(() => {
+          setGoldFlash("flat");
+        }, FLASH_HOLD_MS);
+        return;
+      }
+
+      setSilverFlash(direction);
+      if (silverFlashTimerRef.current) {
+        window.clearTimeout(silverFlashTimerRef.current);
+      }
+      silverFlashTimerRef.current = window.setTimeout(() => {
+        setSilverFlash("flat");
+      }, FLASH_HOLD_MS);
+    },
+    []
+  );
+
   const fetchPrices = useCallback(async (mode: "initial" | "refresh") => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
-    if (mode === "refresh") {
-      setStatus("updating");
+    if (mode === "initial") {
+      setStatus("loading");
     }
 
     const supportsAbort = typeof AbortController !== "undefined";
@@ -286,7 +361,7 @@ export default function PriceScreen({
     }, FETCH_TIMEOUT_MS);
 
     try {
-      const response = await fetch("/api/metals", {
+      const response = await fetch(`/api/metals?t=${Date.now()}`, {
         cache: "no-store",
         ...(controller ? { signal: controller.signal } : {}),
       });
@@ -300,61 +375,109 @@ export default function PriceScreen({
         throw new Error("Invalid metal price response");
       }
 
-      setData(payload);
-      writeCache(payload);
+      const prevGold = prevGoldRef.current;
+      const prevSilver = prevSilverRef.current;
+      const goldTick =
+        typeof prevGold === "number"
+          ? getPriceChange(payload.gold.price, prevGold)
+          : null;
+      const silverTick =
+        typeof prevSilver === "number"
+          ? getPriceChange(payload.silver.price, prevSilver)
+          : null;
 
+      prevGoldRef.current = payload.gold.price;
+      prevSilverRef.current = payload.silver.price;
+
+      // Day % stays on the pill; card color only flashes 1s on a real tick.
       const baseline = resolveDayBaseline(
         payload.gold.price,
         payload.silver.price
       );
-      const changes = changesAgainstBaseline(
-        payload.gold.price,
-        payload.silver.price,
-        baseline
-      );
-      setGoldChange(changes.gold);
-      setSilverChange(changes.silver);
+      const goldDay = getPriceChange(payload.gold.price, baseline.gold);
+      const silverDay = getPriceChange(payload.silver.price, baseline.silver);
 
-      setStatus("live");
+      startTransition(() => {
+        setData((prev) => {
+          if (
+            prev &&
+            prev.gold.price === payload.gold.price &&
+            prev.silver.price === payload.silver.price
+          ) {
+            return prev;
+          }
+          return payload;
+        });
+        setGoldChange(
+          goldDay ?? { absolute: 0, percent: 0, direction: "flat" }
+        );
+        setSilverChange(
+          silverDay ?? { absolute: 0, percent: 0, direction: "flat" }
+        );
+        setStatus((prev) => (prev === "live" ? prev : "live"));
+      });
+
+      if (goldTick?.direction === "up" || goldTick?.direction === "down") {
+        triggerFlash("gold", goldTick.direction);
+      }
+      if (silverTick?.direction === "up" || silverTick?.direction === "down") {
+        triggerFlash("silver", silverTick.direction);
+      }
+
+      writeCache(payload);
     } catch {
-      setStatus("error");
+      startTransition(() => {
+        setStatus((prev) => (prev === "error" ? prev : "error"));
+      });
     } finally {
       window.clearTimeout(timeoutId);
       fetchingRef.current = false;
     }
-  }, []);
+  }, [triggerFlash]);
 
   useEffect(() => {
-    const bootId = window.setTimeout(() => {
-      if (!initialData) {
-        const cached = readCache();
-        if (cached) {
+    if (!initialData) {
+      const cached = readCache();
+      if (cached) {
+        const baseline = getTodayBaseline();
+        const goldDay = baseline
+          ? getPriceChange(cached.gold.price, baseline.gold)
+          : null;
+        const silverDay = baseline
+          ? getPriceChange(cached.silver.price, baseline.silver)
+          : null;
+        startTransition(() => {
           setData(cached);
-          setStatus("updating");
-          const changes = changesAgainstBaseline(
-            cached.gold.price,
-            cached.silver.price,
-            getTodayBaseline()
+          prevGoldRef.current = cached.gold.price;
+          prevSilverRef.current = cached.silver.price;
+          setGoldChange(
+            goldDay ?? { absolute: 0, percent: 0, direction: "flat" }
           );
-          setGoldChange(changes.gold);
-          setSilverChange(changes.silver);
-          void fetchPrices("refresh");
-          return;
-        }
+          setSilverChange(
+            silverDay ?? { absolute: 0, percent: 0, direction: "flat" }
+          );
+          setGoldFlash("flat");
+          setSilverFlash("flat");
+          setStatus("live");
+        });
+        void fetchPrices("refresh");
+      } else {
         void fetchPrices("initial");
-        return;
       }
-
+    } else {
       void fetchPrices("refresh");
-    }, initialData ? 5000 : 0);
+    }
 
     const intervalId = window.setInterval(() => {
       void fetchPrices("refresh");
     }, REFRESH_INTERVAL_MS);
 
     return () => {
-      window.clearTimeout(bootId);
       window.clearInterval(intervalId);
+      if (goldFlashTimerRef.current) window.clearTimeout(goldFlashTimerRef.current);
+      if (silverFlashTimerRef.current) {
+        window.clearTimeout(silverFlashTimerRef.current);
+      }
     };
   }, [fetchPrices, initialData]);
 
@@ -367,16 +490,17 @@ export default function PriceScreen({
   const statusText =
     status === "loading"
       ? "Connecting to live price…"
-      : status === "updating"
-        ? "Updating prices…"
-        : status === "error"
-          ? data
-            ? `Unable to refresh — showing last price (${lastUpdatedLabel})`
-            : "Unable to update live price"
-          : `Live price updated ${lastUpdatedLabel}`;
+      : status === "error"
+        ? data
+          ? `Unable to refresh — showing last price (${lastUpdatedLabel})`
+          : "Unable to update live price"
+        : `Live price updated ${lastUpdatedLabel}`;
+
+  const isBusy = status === "loading";
 
   return (
     <main className="screen">
+      <BackgroundStage />
       <header className="topbar">
         <div>
           <div aria-live="polite" aria-atomic="true" suppressHydrationWarning>
@@ -399,20 +523,26 @@ export default function PriceScreen({
       </header>
 
       <section className="brand">
-        <div className="brand-mark" aria-hidden="true">
-          ◈
+        <div className="brand-lockup">
+          <Image
+            src="/brand-assets/page4-img1.png"
+            alt=""
+            aria-hidden="true"
+            className="brand-logo"
+            width={56}
+            height={56}
+            priority
+          />
+          <div className="brand-copy">
+            <h1>{COMPANY_TITLE}</h1>
+            <div className="brand-sub">{COMPANY_SUBTITLE}</div>
+          </div>
         </div>
-        <h1>{COMPANY_TITLE}</h1>
-        <div className="brand-sub">{COMPANY_SUBTITLE}</div>
         <div className="status-bar" role="status" aria-live="polite">
           <div>
             <span
               className={`status-dot${
-                status === "error"
-                  ? " error"
-                  : status === "loading" || status === "updating"
-                    ? " loading"
-                    : ""
+                status === "error" ? " error" : isBusy ? " loading" : ""
               }`}
             />
             <span>{statusText}</span>
@@ -449,6 +579,7 @@ export default function PriceScreen({
             metal="gold"
             price={getBidPrice(data.gold.price)}
             change={goldChange}
+            flash={goldFlash}
           />
           <QuoteCard
             title="GOLD"
@@ -456,6 +587,7 @@ export default function PriceScreen({
             metal="gold"
             price={getAskPrice(data.gold.price)}
             change={goldChange}
+            flash={goldFlash}
           />
           <QuoteCard
             title="SILVER"
@@ -463,6 +595,7 @@ export default function PriceScreen({
             metal="silver"
             price={getBidPrice(data.silver.price)}
             change={silverChange}
+            flash={silverFlash}
           />
           <QuoteCard
             title="SILVER"
@@ -470,6 +603,7 @@ export default function PriceScreen({
             metal="silver"
             price={getAskPrice(data.silver.price)}
             change={silverChange}
+            flash={silverFlash}
           />
         </section>
       ) : (

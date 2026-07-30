@@ -19,9 +19,25 @@ export const ASK_OFFSET_USD = Number.parseFloat(
 );
 
 export const USD_TO_QAR = 3.64;
-export const REFRESH_INTERVAL_MS = 60000;
+/** Realtime client poll interval (ms). Goldspm-style default: 1000. */
+export const REFRESH_INTERVAL_MS = Number.parseInt(
+  process.env.NEXT_PUBLIC_REFRESH_INTERVAL_MS ?? "1000",
+  10
+);
 export const TROY_OUNCE_IN_GRAMS = 31.1034768;
 export const TIMEZONE = "Asia/Qatar";
+
+/** Full-bleed showroom backgrounds that crossfade on the TV screen. */
+export const BACKGROUND_IMAGES = [
+  "/brand-assets/page10-img1.jpg",
+  "/brand-assets/gold-splash.png",
+  "/brand-assets/batik-gold.png",
+  "/brand-assets/antam-gold.png",
+  "/brand-assets/pamp-assay.png",
+  "/brand-assets/valcambi-gold.png",
+] as const;
+/** How long each background stays visible before fading to the next. */
+export const BACKGROUND_ROTATE_MS = 3000;
 
 export const GOLD_API_URL = "https://api.gold-api.com/price/XAU";
 export const SILVER_API_URL = "https://api.gold-api.com/price/XAG";

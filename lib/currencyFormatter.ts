@@ -16,7 +16,7 @@ const usdCompactFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
   minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 3,
 });
 
 export function formatUSD(value: number): string {
@@ -80,7 +80,7 @@ export function formatQARAmount(value: number): string {
 export function formatChangeAbsolute(value: number): string {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 3,
   }).format(Math.abs(value));
 }
 

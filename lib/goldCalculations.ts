@@ -77,10 +77,12 @@ export function getPriceChange(
 ): PriceChange | null {
   if (typeof previous !== "number" || previous <= 0) return null;
 
-  const absolute = current - previous;
-  const percent = (absolute / previous) * 100;
+  // Round to 3 decimals so tiny float noise does not count as a move.
+  const absolute =
+    Math.round((current - previous) * 1000) / 1000;
+  const percent = previous === 0 ? 0 : (absolute / previous) * 100;
 
-  if (Math.abs(absolute) < 0.0001) {
+  if (Math.abs(absolute) < 0.001) {
     return { absolute: 0, percent: 0, direction: "flat" };
   }
 
