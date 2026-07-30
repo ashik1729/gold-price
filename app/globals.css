@@ -342,46 +342,43 @@
   margin-top: 0.15rem;
   padding: 0.4rem 0.85rem;
   border-radius: 999px;
-  background: rgba(70, 78, 94, 0.88);
-  border: 1px solid rgba(180, 190, 210, 0.2);
-  color: #e8eef8;
+  background: rgba(20, 24, 34, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9aa6ba;
   font-size: clamp(12px, 1vw, 16px);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  transition:
-    background 0.35s ease,
-    border-color 0.35s ease,
-    color 0.35s ease;
+  transition: color 0.3s ease;
 }
 
-.change-pill.up {
-  color: #ffffff;
-  background: rgba(22, 150, 85, 0.92);
-  border-color: rgba(90, 230, 150, 0.55);
+.change-pill.up .change-arrow,
+.change-pill.up .change-abs {
+  color: #3dde8a;
 }
 
-.change-pill.down {
-  color: #ffffff;
-  background: rgba(190, 45, 75, 0.92);
-  border-color: rgba(255, 120, 150, 0.55);
+.change-pill.down .change-arrow,
+.change-pill.down .change-abs {
+  color: #ff6d9c;
 }
 
-.change-pill.flat {
-  color: #d5dce8;
-  background: rgba(70, 78, 94, 0.88);
-  border-color: rgba(180, 190, 210, 0.2);
+.change-pill.flat .change-arrow,
+.change-pill.flat .change-abs {
+  color: #9aa6ba;
 }
 
 .change-pill .pct {
-  color: inherit;
-  font-weight: 700;
-  font-size: 1em;
+  color: #8b97ab;
+  font-weight: 600;
+  font-size: 0.95em;
 }
 
 .change-arrow {
   font-size: 0.95em;
   line-height: 1;
-  color: inherit;
+}
+
+.change-abs {
+  font-weight: 700;
 }
 
 .tabs {

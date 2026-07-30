@@ -80,7 +80,7 @@ export function formatQARAmount(value: number): string {
 export function formatChangeAbsolute(value: number): string {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 3,
+    maximumFractionDigits: 2,
   }).format(Math.abs(value));
 }
 

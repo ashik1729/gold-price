@@ -20,6 +20,7 @@ import {
   TIMEZONE,
 } from "@/lib/constants";
 import {
+  formatChangeAbsolute,
   formatChangePercent,
   formatQatarDateShort,
   formatQatarTime,
@@ -141,6 +142,7 @@ function ChangePill({ change }: { change: PriceChange | null }) {
       <span className="change-arrow" aria-hidden="true">
         {arrow}
       </span>
+      <span className="change-abs">{formatChangeAbsolute(change.absolute)}</span>
       <span className="pct">{formatChangePercent(change.percent)}</span>
     </div>
   );
@@ -292,24 +294,9 @@ export default function PriceScreen({
       writeCache(initialData);
       prevGoldRef.current = initialData.gold.price;
       prevSilverRef.current = initialData.silver.price;
-      const baseline = resolveDayBaseline(
-        initialData.gold.price,
-        initialData.silver.price
-      );
-      setGoldChange(
-        getPriceChange(initialData.gold.price, baseline.gold) ?? {
-          absolute: 0,
-          percent: 0,
-          direction: "flat",
-        }
-      );
-      setSilverChange(
-        getPriceChange(initialData.silver.price, baseline.silver) ?? {
-          absolute: 0,
-          percent: 0,
-          direction: "flat",
-        }
-      );
+      resolveDayBaseline(initialData.gold.price, initialData.silver.price);
+      setGoldChange({ absolute: 0, percent: 0, direction: "flat" });
+      setSilverChange({ absolute: 0, percent: 0, direction: "flat" });
       setGoldFlash("flat");
       setSilverFlash("flat");
     }, 0);
@@ -389,13 +376,8 @@ export default function PriceScreen({
       prevGoldRef.current = payload.gold.price;
       prevSilverRef.current = payload.silver.price;
 
-      // Day % stays on the pill; card color only flashes 1s on a real tick.
-      const baseline = resolveDayBaseline(
-        payload.gold.price,
-        payload.silver.price
-      );
-      const goldDay = getPriceChange(payload.gold.price, baseline.gold);
-      const silverDay = getPriceChange(payload.silver.price, baseline.silver);
+      // Keep day baseline stored; pill shows last-tick move (previous poll → now).
+      resolveDayBaseline(payload.gold.price, payload.silver.price);
 
       startTransition(() => {
         setData((prev) => {
@@ -408,12 +390,15 @@ export default function PriceScreen({
           }
           return payload;
         });
-        setGoldChange(
-          goldDay ?? { absolute: 0, percent: 0, direction: "flat" }
-        );
-        setSilverChange(
-          silverDay ?? { absolute: 0, percent: 0, direction: "flat" }
-        );
+
+        // Only update pill when price actually moved; otherwise keep last move.
+        if (goldTick && goldTick.direction !== "flat") {
+          setGoldChange(goldTick);
+        }
+        if (silverTick && silverTick.direction !== "flat") {
+          setSilverChange(silverTick);
+        }
+
         setStatus((prev) => (prev === "live" ? prev : "live"));
       });
 
@@ -439,23 +424,12 @@ export default function PriceScreen({
     if (!initialData) {
       const cached = readCache();
       if (cached) {
-        const baseline = getTodayBaseline();
-        const goldDay = baseline
-          ? getPriceChange(cached.gold.price, baseline.gold)
-          : null;
-        const silverDay = baseline
-          ? getPriceChange(cached.silver.price, baseline.silver)
-          : null;
         startTransition(() => {
           setData(cached);
           prevGoldRef.current = cached.gold.price;
           prevSilverRef.current = cached.silver.price;
-          setGoldChange(
-            goldDay ?? { absolute: 0, percent: 0, direction: "flat" }
-          );
-          setSilverChange(
-            silverDay ?? { absolute: 0, percent: 0, direction: "flat" }
-          );
+          setGoldChange({ absolute: 0, percent: 0, direction: "flat" });
+          setSilverChange({ absolute: 0, percent: 0, direction: "flat" });
           setGoldFlash("flat");
           setSilverFlash("flat");
           setStatus("live");
