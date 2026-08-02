@@ -1,10 +1,67 @@
 import { GOLDAPI_ENABLED, GOLDAPI_NET_BASE_URL } from "@/lib/constants";
-import type { ExternalGoldApiNetResponse, MetalsApiResponse } from "@/lib/types";
+import type {
+  ExternalGoldApiNetResponse,
+  ExternalMetalApiResponse,
+  MetalsApiResponse,
+} from "@/lib/types";
+
+type MetalQuote = {
+  symbol: string;
+  price: number;
+  bid: number;
+  ask: number;
+};
+
+const FREE_GOLD_URL = "https://api.gold-api.com/price/XAU";
+const FREE_SILVER_URL = "https://api.gold-api.com/price/XAG";
+
+async function fetchMetalFromFreeApi(
+  url: string,
+  fallbackSymbol: string
+): Promise<MetalQuote> {
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "VictoriaGoldDiamonds/1.0",
+      },
+    });
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Unknown network error";
+    throw new Error(`Network error fetching ${fallbackSymbol}: ${detail}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch ${fallbackSymbol}: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = (await response.json()) as ExternalMetalApiResponse;
+
+  if (typeof data.price !== "number" || Number.isNaN(data.price)) {
+    throw new Error(`Invalid price payload for ${fallbackSymbol}`);
+  }
+
+  // Free API is spot-only — bid/ask start at spot; Victoria offsets apply in UI.
+  console.info(`[gold-api.com] ${fallbackSymbol} price=${data.price}`);
+
+  return {
+    symbol: data.symbol ?? fallbackSymbol,
+    price: data.price,
+    bid: data.price,
+    ask: data.price,
+  };
+}
 
 async function fetchMetalFromGoldApiNet(
   metalCode: "XAU" | "XAG",
   fallbackSymbol: string
-): Promise<{ symbol: string; price: number; bid: number; ask: number }> {
+): Promise<MetalQuote> {
   const apiKey = process.env.GOLDAPI_NET_KEY;
   if (!apiKey) {
     throw new Error("GOLDAPI_NET_KEY is not configured");
@@ -31,7 +88,7 @@ async function fetchMetalFromGoldApiNet(
   if (!response.ok) {
     const body = await response.text().catch(() => "");
     throw new Error(
-      `Failed to fetch ${fallbackSymbol}: ${response.status} ${response.statusText}${body ? ` — ${body.slice(0, 200)}` : ""}`
+      `Failed to fetch ${fallbackSymbol}: ${response.status} ${response.statusText}${body ? ` — ${body.slice(0, 120)}` : ""}`
     );
   }
 
@@ -48,7 +105,6 @@ async function fetchMetalFromGoldApiNet(
     throw new Error(`Invalid price payload for ${fallbackSymbol}`);
   }
 
-  // Helps judge free-plan freshness while testing 5s polls (check server logs).
   console.info(
     `[goldapi.net] ${fallbackSymbol} price=${data.price} bid=${data.bid} ask=${data.ask}`
   );
@@ -61,14 +117,29 @@ async function fetchMetalFromGoldApiNet(
   };
 }
 
-export async function fetchMetals(): Promise<MetalsApiResponse> {
-  if (!GOLDAPI_ENABLED) {
-    throw new Error("Gold API disabled (GOLDAPI_ENABLED=false)");
+async function fetchMetalPair(
+  metalCode: "XAU" | "XAG",
+  freeUrl: string
+): Promise<MetalQuote> {
+  if (GOLDAPI_ENABLED) {
+    try {
+      return await fetchMetalFromGoldApiNet(metalCode, metalCode);
+    } catch (error) {
+      // Free plan often dies at 100 calls/month (429) — keep the board alive.
+      console.warn(
+        `[metals] goldapi.net failed for ${metalCode}, falling back to gold-api.com`,
+        error instanceof Error ? error.message : error
+      );
+    }
   }
 
+  return fetchMetalFromFreeApi(freeUrl, metalCode);
+}
+
+export async function fetchMetals(): Promise<MetalsApiResponse> {
   const [gold, silver] = await Promise.all([
-    fetchMetalFromGoldApiNet("XAU", "XAU"),
-    fetchMetalFromGoldApiNet("XAG", "XAG"),
+    fetchMetalPair("XAU", FREE_GOLD_URL),
+    fetchMetalPair("XAG", FREE_SILVER_URL),
   ]);
 
   return {

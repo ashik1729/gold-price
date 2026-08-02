@@ -1,7 +1,6 @@
 "use client";
 
 import { Maximize, Minimize } from "lucide-react";
-import Image from "next/image";
 import {
   startTransition,
   useCallback,
@@ -75,12 +74,22 @@ function writeCache(data: MetalsApiResponse) {
 }
 
 function qatarDateKey(date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    // Asia/Qatar = UTC+3, no DST
+    const utcMs = date.getTime() + date.getTimezoneOffset() * 60_000;
+    const q = new Date(utcMs + 3 * 3600_000);
+    const y = q.getFullYear();
+    const m = String(q.getMonth() + 1).padStart(2, "0");
+    const d = String(q.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
 }
 
 function readDayBaseline(): DayBaselinePrices | null {
@@ -192,14 +201,20 @@ function FullscreenButton() {
 
 function BackgroundStage() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [mediaReady, setMediaReady] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   const goNext = useCallback(() => {
     setActiveIndex((current) => (current + 1) % BACKGROUND_MEDIA.length);
   }, []);
 
+  // Defer video + rotation until JS runs — keeps old TV first paint light (SSR = first image).
   useEffect(() => {
-    if (BACKGROUND_MEDIA.length < 2) return;
+    setMediaReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mediaReady || BACKGROUND_MEDIA.length < 2) return;
 
     const active = BACKGROUND_MEDIA[activeIndex];
     if (active.type === "video") {
@@ -209,9 +224,11 @@ function BackgroundStage() {
 
     const id = window.setTimeout(goNext, BACKGROUND_ROTATE_MS);
     return () => window.clearTimeout(id);
-  }, [activeIndex, goNext]);
+  }, [activeIndex, goNext, mediaReady]);
 
   useEffect(() => {
+    if (!mediaReady) return;
+
     videoRefs.current.forEach((video, index) => {
       if (!video) return;
       if (index === activeIndex && BACKGROUND_MEDIA[index]?.type === "video") {
@@ -224,11 +241,15 @@ function BackgroundStage() {
         video.pause();
       }
     });
-  }, [activeIndex, goNext]);
+  }, [activeIndex, goNext, mediaReady]);
+
+  const slides = mediaReady
+    ? BACKGROUND_MEDIA
+    : BACKGROUND_MEDIA.filter((item) => item.type === "image").slice(0, 1);
 
   return (
     <div className="screen-bg" aria-hidden="true">
-      {BACKGROUND_MEDIA.map((item, index) => {
+      {slides.map((item, index) => {
         const focus = item.focus ?? "center";
         const active = index === activeIndex ? " is-active" : "";
         if (item.type === "video") {
@@ -300,10 +321,16 @@ export default function PriceScreen({
   initialError = null,
   apiEnabled = true,
 }: PriceScreenProps) {
+  // null until client mount — avoids duplicate SSR UI; legacy board stays if JS fails.
+  const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<MetalsApiResponse | null>(initialData);
-  const [status, setStatus] = useState<MarketStatus>(
-    initialData ? "live" : initialError ? "error" : "loading"
-  );
+  const [status, setStatus] = useState<MarketStatus>(() => {
+    if (initialData) return "live";
+    if (initialError) return "error";
+    // No JS + no SSR prices must not sit on "Connecting…" forever (old TVs).
+    if (!apiEnabled) return "error";
+    return "loading";
+  });
   const [now, setNow] = useState<Date>(() => new Date());
   const [goldChange, setGoldChange] = useState<PriceChange | null>(
     initialData
@@ -327,6 +354,10 @@ export default function PriceScreen({
   );
   const goldFlashTimerRef = useRef<number | null>(null);
   const silverFlashTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -383,6 +414,7 @@ export default function PriceScreen({
     []
   );
 
+  // Soft-fail on old TV browsers that lack AbortController / fetch quirks.
   const fetchPrices = useCallback(async (mode: "initial" | "refresh") => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
@@ -398,6 +430,10 @@ export default function PriceScreen({
     }, FETCH_TIMEOUT_MS);
 
     try {
+      if (typeof fetch !== "function") {
+        throw new Error("Fetch API unavailable");
+      }
+
       const response = await fetch(`/api/metals?t=${Date.now()}`, {
         cache: "no-store",
         ...(controller ? { signal: controller.signal } : {}),
@@ -498,6 +534,8 @@ export default function PriceScreen({
   }, [triggerFlash]);
 
   useEffect(() => {
+    if (!mounted) return;
+
     if (!apiEnabled) {
       // Kill switch: keep SSR/cache on screen, do not call /api/metals.
       const cached = readCache();
@@ -508,6 +546,8 @@ export default function PriceScreen({
           prevSilverRef.current = cached.silver.price;
           setStatus("live");
         });
+      } else if (!initialData) {
+        startTransition(() => setStatus("error"));
       }
       return () => {
         if (goldFlashTimerRef.current) window.clearTimeout(goldFlashTimerRef.current);
@@ -549,7 +589,7 @@ export default function PriceScreen({
         window.clearTimeout(silverFlashTimerRef.current);
       }
     };
-  }, [fetchPrices, initialData, apiEnabled]);
+  }, [mounted, fetchPrices, initialData, apiEnabled]);
 
   const lastUpdatedLabel = data
     ? formatUpdatedAt(data.updatedAt, TIMEZONE)
@@ -568,8 +608,12 @@ export default function PriceScreen({
 
   const isBusy = status === "loading";
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <main className="screen">
+    <main className="screen screen--live">
       <BackgroundStage />
       <header className="topbar">
         <div>
@@ -594,14 +638,13 @@ export default function PriceScreen({
 
       <section className="brand">
         <div className="brand-lockup">
-          <Image
+          <img
             src="/brand-assets/page4-img1.png"
             alt=""
             aria-hidden="true"
             className="brand-logo"
             width={56}
             height={56}
-            priority
           />
           <div className="brand-copy">
             <h1>{COMPANY_TITLE}</h1>

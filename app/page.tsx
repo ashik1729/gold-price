@@ -1,5 +1,5 @@
+import PriceBoardStatic from "@/components/PriceBoardStatic";
 import PriceScreen from "@/components/PriceScreen";
-import { GOLDAPI_ENABLED } from "@/lib/constants";
 import { fetchMetals } from "@/lib/fetchMetals";
 import type { MetalsApiResponse } from "@/lib/types";
 
@@ -10,20 +10,31 @@ export default async function HomePage() {
   let initialData: MetalsApiResponse | null = null;
   let initialError: string | null = null;
 
-  if (GOLDAPI_ENABLED) {
-    try {
-      initialData = await fetchMetals();
-    } catch (error) {
-      initialError =
-        error instanceof Error ? error.message : "Unable to fetch metal prices";
-    }
+  try {
+    initialData = await fetchMetals();
+  } catch (error) {
+    initialError =
+      error instanceof Error ? error.message : "Unable to fetch metal prices";
   }
 
+  const generatedAt = new Date();
+
   return (
-    <PriceScreen
-      initialData={initialData}
-      initialError={initialError}
-      apiEnabled={GOLDAPI_ENABLED}
-    />
+    <div className="board-root">
+      <div className="board-layer board-layer--legacy">
+        <PriceBoardStatic
+          data={initialData}
+          error={initialError}
+          generatedAt={generatedAt}
+        />
+      </div>
+      <div className="board-layer board-layer--live">
+        <PriceScreen
+          initialData={initialData}
+          initialError={initialError}
+          apiEnabled
+        />
+      </div>
+    </div>
   );
 }

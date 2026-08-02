@@ -21,16 +21,26 @@ export const ASK_OFFSET_USD = Number.parseFloat(
 export const USD_TO_QAR = 3.64;
 
 /**
- * Kill switch for goldapi.net. Set `GOLDAPI_ENABLED=false` in `.env.local`
- * to stop upstream calls (saves free-plan quota). Restart or hard-refresh after change.
- * Anything other than "false" is treated as enabled.
+ * When true, prefer goldapi.net (real bid/ask). On failure/429, falls back to
+ * free gold-api.com automatically. Set false to skip goldapi.net entirely
+ * (recommended until you buy Pro — free plan is only 100 calls/month).
  */
 export const GOLDAPI_ENABLED =
-  (process.env.GOLDAPI_ENABLED ?? "true").toLowerCase() !== "false";
+  (process.env.GOLDAPI_ENABLED ?? "false").toLowerCase() === "true";
 
 /** Client poll interval (ms). Default 5000 for goldapi.net free/pro testing. */
 export const REFRESH_INTERVAL_MS = Number.parseInt(
   process.env.NEXT_PUBLIC_REFRESH_INTERVAL_MS ?? "5000",
+  10
+);
+
+/**
+ * Full-page reload interval (seconds) for TV / no-JS browsers.
+ * Modern browsers remove this meta tag via inline script and keep silent polling.
+ * Set `NEXT_PUBLIC_META_REFRESH_SEC=0` to disable.
+ */
+export const META_REFRESH_SEC = Number.parseInt(
+  process.env.NEXT_PUBLIC_META_REFRESH_SEC ?? "30",
   10
 );
 export const TROY_OUNCE_IN_GRAMS = 31.1034768;
