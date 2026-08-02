@@ -37,15 +37,22 @@ export const TROY_OUNCE_IN_GRAMS = 31.1034768;
 export const TIMEZONE = "Asia/Qatar";
 
 /** Full-bleed showroom backgrounds that crossfade on the TV screen. */
-export const BACKGROUND_IMAGES = [
-  "/brand-assets/page10-img1.jpg",
-  "/brand-assets/gold-splash.png",
-  "/brand-assets/batik-gold.png",
-  "/brand-assets/antam-gold.png",
-  "/brand-assets/pamp-assay.png",
-  "/brand-assets/valcambi-gold.png",
+export type BackgroundMedia = {
+  src: string;
+  type: "image" | "video";
+  /** Crop focus — `right` keeps subject clear of the center price cards. */
+  focus?: "center" | "right";
+};
+
+export const BACKGROUND_MEDIA: readonly BackgroundMedia[] = [
+  { src: "/brand-assets/page10-img1.jpg", type: "image", focus: "center" },
+  { src: "/brand-assets/gold-splash.png", type: "image", focus: "right" },
+  { src: "/brand-assets/homepage_lady_fortuna_2.mp4", type: "video", focus: "center" },
+  { src: "/brand-assets/fortuna-die.png", type: "image", focus: "right" },
+  { src: "/brand-assets/fortuna-collection.png", type: "image", focus: "right" },
 ] as const;
-/** How long each background stays visible before fading to the next. */
+
+/** How long each still image stays visible before fading to the next. */
 export const BACKGROUND_ROTATE_MS = 3000;
 
 /** Docs path `/price/...` is stale; live endpoint is `/api/price/{metal}/{currency}`. */

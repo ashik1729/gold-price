@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import {
-  BACKGROUND_IMAGES,
+  BACKGROUND_MEDIA,
   BACKGROUND_ROTATE_MS,
   COMPANY_SUBTITLE,
   COMPANY_TITLE,
@@ -192,26 +192,69 @@ function FullscreenButton() {
 
 function BackgroundStage() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  const goNext = useCallback(() => {
+    setActiveIndex((current) => (current + 1) % BACKGROUND_MEDIA.length);
+  }, []);
 
   useEffect(() => {
-    if (BACKGROUND_IMAGES.length < 2) return;
+    if (BACKGROUND_MEDIA.length < 2) return;
 
-    const id = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % BACKGROUND_IMAGES.length);
-    }, BACKGROUND_ROTATE_MS);
+    const active = BACKGROUND_MEDIA[activeIndex];
+    if (active.type === "video") {
+      // Advance when the video finishes (handled via onEnded).
+      return;
+    }
 
-    return () => window.clearInterval(id);
-  }, []);
+    const id = window.setTimeout(goNext, BACKGROUND_ROTATE_MS);
+    return () => window.clearTimeout(id);
+  }, [activeIndex, goNext]);
+
+  useEffect(() => {
+    videoRefs.current.forEach((video, index) => {
+      if (!video) return;
+      if (index === activeIndex && BACKGROUND_MEDIA[index]?.type === "video") {
+        video.currentTime = 0;
+        void video.play().catch(() => {
+          // If autoplay fails, don't leave the board stuck on a dead slide.
+          goNext();
+        });
+      } else {
+        video.pause();
+      }
+    });
+  }, [activeIndex, goNext]);
 
   return (
     <div className="screen-bg" aria-hidden="true">
-      {BACKGROUND_IMAGES.map((src, index) => (
-        <div
-          key={src}
-          className={`screen-bg__image${index === activeIndex ? " is-active" : ""}`}
-          style={{ backgroundImage: `url("${src}")` }}
-        />
-      ))}
+      {BACKGROUND_MEDIA.map((item, index) => {
+        const focus = item.focus ?? "center";
+        const active = index === activeIndex ? " is-active" : "";
+        if (item.type === "video") {
+          return (
+            <video
+              key={item.src}
+              ref={(el) => {
+                videoRefs.current[index] = el;
+              }}
+              className={`screen-bg__video focus-${focus}${active}`}
+              src={item.src}
+              muted
+              playsInline
+              preload="metadata"
+              onEnded={goNext}
+            />
+          );
+        }
+        return (
+          <div
+            key={item.src}
+            className={`screen-bg__image focus-${focus}${active}`}
+            style={{ backgroundImage: `url("${item.src}")` }}
+          />
+        );
+      })}
       <div className="screen-bg__veil" />
     </div>
   );

@@ -100,7 +100,37 @@
   filter: saturate(1.05) contrast(1.05);
 }
 
+.screen-bg__image.focus-right {
+  /* Shift subject into the clearer right side (price cards sit center). */
+  background-position: 82% center;
+}
+
 .screen-bg__image.is-active {
+  opacity: 0.92;
+  transform: scale(1);
+}
+
+.screen-bg__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  opacity: 0;
+  transform: scale(1.03);
+  transition:
+    opacity 0.7s ease,
+    transform 3s ease;
+  filter: saturate(1.05) contrast(1.05);
+  pointer-events: none;
+}
+
+.screen-bg__video.focus-right {
+  object-position: 82% center;
+}
+
+.screen-bg__video.is-active {
   opacity: 0.92;
   transform: scale(1);
 }
