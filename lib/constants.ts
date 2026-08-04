@@ -35,12 +35,11 @@ export const REFRESH_INTERVAL_MS = Number.parseInt(
 );
 
 /**
- * Full-page reload interval (seconds) for TV / no-JS browsers.
- * Modern browsers remove this meta tag via inline script and keep silent polling.
- * Set `NEXT_PUBLIC_META_REFRESH_SEC=0` to disable.
+ * Full-page reload interval (seconds). Disabled by default — silent /api/metals
+ * polling updates prices without a blink. Set > 0 only if you need a no-JS fallback.
  */
 export const META_REFRESH_SEC = Number.parseInt(
-  process.env.NEXT_PUBLIC_META_REFRESH_SEC ?? "30",
+  process.env.NEXT_PUBLIC_META_REFRESH_SEC ?? "0",
   10
 );
 export const TROY_OUNCE_IN_GRAMS = 31.1034768;

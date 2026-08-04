@@ -268,11 +268,13 @@ function BackgroundStage() {
             />
           );
         }
+        // <img> is more reliable than CSS background-image on TV browsers.
         return (
-          <div
+          <img
             key={item.src}
-            className={`screen-bg__image focus-${focus}${active}`}
-            style={{ backgroundImage: `url("${item.src}")` }}
+            className={`screen-bg__photo focus-${focus}${active}`}
+            src={item.src}
+            alt=""
           />
         );
       })}
@@ -357,6 +359,17 @@ export default function PriceScreen({
 
   useEffect(() => {
     setMounted(true);
+    // Hide browser chrome on TV when allowed (user gesture not always required on some WebViews).
+    const id = window.setTimeout(() => {
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          void document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch {
+        // Ignore — many TVs block fullscreen without a remote click.
+      }
+    }, 800);
+    return () => window.clearTimeout(id);
   }, []);
 
   useEffect(() => {

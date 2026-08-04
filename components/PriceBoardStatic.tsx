@@ -63,9 +63,10 @@ export default function PriceBoardStatic({
       style={{ background: "#061634", color: "#f8f2e7" }}
     >
       <div className="screen-bg" aria-hidden="true">
-        <div
-          className="screen-bg__image focus-center is-active"
-          style={{ backgroundImage: 'url("/brand-assets/page10-img1.jpg")' }}
+        <img
+          className="screen-bg__photo focus-center is-active"
+          src="/brand-assets/page10-img1.jpg"
+          alt=""
         />
         <div className="screen-bg__veil" />
       </div>
