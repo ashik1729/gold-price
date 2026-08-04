@@ -92,7 +92,7 @@
   width: 100%;
   height: 100%;
   /* Extra bottom padding for TV overscan — keeps USD row visible */
-  padding: 2.5vh 3vw 5vh;
+  padding: 3vh 4vw 5.5vh;
   display: flex;
   flex-direction: column;
   gap: 1.2vh;
@@ -292,28 +292,28 @@
 .spot-panel {
   position: relative;
   z-index: 1;
-  width: min(1100px, 92vw);
+  width: min(980px, 86vw);
   margin: 0 auto;
-  padding: clamp(1rem, 2.2vh, 1.8rem);
+  padding: clamp(0.85rem, 1.8vh, 1.5rem);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.8vw;
+  gap: 1.4vw;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgba(5, 18, 42, 0.6);
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   align-content: center;
 }
 
 .spot-panel.quotes {
-  gap: 1.6vw 1.8vw;
+  gap: 1.2vw 1.4vw;
 }
 
 .spot {
-  min-height: clamp(120px, 18vh, 200px);
-  padding: 2.2vh 2vw;
+  min-height: clamp(110px, 15vh, 175px);
+  padding: 1.8vh 1.6vw;
   border-radius: 10px;
   background: linear-gradient(
     135deg,
@@ -394,10 +394,10 @@
 }
 
 .spot-price {
-  margin: 0.8rem 0 0.4rem;
+  margin: 0.65rem 0 0.35rem;
   color: #f4d57d;
   font-weight: 800;
-  font-size: clamp(30px, 4.4vw, 64px);
+  font-size: clamp(28px, 3.8vw, 56px);
   line-height: 1.1;
   text-shadow: 0 0 24px rgba(216, 171, 60, 0.18);
   font-variant-numeric: tabular-nums;
@@ -561,7 +561,16 @@
 
 @media (min-width: 1600px) {
   .screen {
-    padding: 2.5vh 3vw 5vh;
+    /* More breathing room from all edges on TV / large monitors */
+    padding: 5vh 7vw 7vh;
+  }
+
+  .spot-panel {
+    width: min(920px, 72vw);
+  }
+
+  .spot {
+    min-height: clamp(120px, 14vh, 170px);
   }
 }
 
