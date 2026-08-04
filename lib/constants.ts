@@ -56,8 +56,7 @@ export type BackgroundMedia = {
 export const BACKGROUND_MEDIA: readonly BackgroundMedia[] = [
   { src: "/brand-assets/page10-img1.jpg", type: "image", focus: "center" },
   { src: "/brand-assets/gold-splash.png", type: "image", focus: "right" },
-  // Video disabled for now — re-enable when TV/browser playback is stable:
-  // { src: "/brand-assets/homepage_lady_fortuna_2.mp4", type: "video", focus: "center" },
+  { src: "/brand-assets/homepage_lady_fortuna_2.mp4", type: "video", focus: "center" },
   { src: "/brand-assets/fortuna-die.png", type: "image", focus: "right" },
   { src: "/brand-assets/fortuna-collection.png", type: "image", focus: "right" },
 ] as const;
