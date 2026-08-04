@@ -57,7 +57,11 @@ export default function PriceBoardStatic({
       : "Connecting to live price…";
 
   return (
-    <main className="screen" id="legacy-board">
+    <main
+      className="screen"
+      id="legacy-board"
+      style={{ background: "#061634", color: "#f8f2e7" }}
+    >
       <div className="screen-bg" aria-hidden="true">
         <div
           className="screen-bg__image focus-center is-active"

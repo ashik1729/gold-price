@@ -613,7 +613,10 @@ export default function PriceScreen({
   }
 
   return (
-    <main className="screen screen--live">
+    <main
+      className="screen screen--live"
+      style={{ background: "#061634", color: "#f8f2e7" }}
+    >
       <BackgroundStage />
       <header className="topbar">
         <div>

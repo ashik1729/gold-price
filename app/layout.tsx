@@ -51,7 +51,11 @@ export default function RootLayout({
           </>
         ) : null}
       </head>
-      <body className="min-h-full font-sans" suppressHydrationWarning>
+      <body
+        className="min-h-full font-sans"
+        style={{ background: "#061634", color: "#f8f2e7" }}
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>

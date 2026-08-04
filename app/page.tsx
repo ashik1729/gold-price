@@ -20,21 +20,21 @@ export default async function HomePage() {
   const generatedAt = new Date();
 
   return (
-    <div className="board-root">
-      <div className="board-layer board-layer--legacy">
-        <PriceBoardStatic
-          data={initialData}
-          error={initialError}
-          generatedAt={generatedAt}
-        />
-      </div>
-      <div className="board-layer board-layer--live">
-        <PriceScreen
-          initialData={initialData}
-          initialError={initialError}
-          apiEnabled
-        />
-      </div>
-    </div>
+    <>
+      {/*
+        Static board first in the document — old TVs that fail CSS/JS still get
+        readable markup. Live board only mounts when JS works and covers it.
+      */}
+      <PriceBoardStatic
+        data={initialData}
+        error={initialError}
+        generatedAt={generatedAt}
+      />
+      <PriceScreen
+        initialData={initialData}
+        initialError={initialError}
+        apiEnabled
+      />
+    </>
   );
 }
